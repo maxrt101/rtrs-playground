@@ -1,0 +1,23 @@
+using sysbus
+
+# Create machine
+mach create "stm32l0x1"
+
+# Copy machine platform from STM32L071
+machine LoadPlatformDescription @platforms/cpus/stm32l071.repl
+
+# Load compiled ELF
+sysbus LoadELF @target/thumbv6m-none-eabi/release/stm32l051
+
+# Will show USART1 window (though using run.sh/console.sh makes this redundant)
+showAnalyzer usart1
+
+# USART1 to PTY Terminal Redirection
+emulation CreateUartPtyTerminal "console" "/tmp/renode-gs-console"
+connector Connect sysbus.usart1 console
+
+# USART1 to Socket Terminal Redirection
+#emulation CreateServerSocketTerminal 4242 "console"
+#connector Connect sysbus.usart1 console
+
+start

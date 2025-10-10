@@ -1,0 +1,8 @@
+[workspace]
+members = [
+    "app",
+    "rtrs",
+    "targets/stm32l051",
+    "targets/stm32h743",
+]
+resolver = "3"

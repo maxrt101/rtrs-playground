@@ -1,0 +1,8 @@
+[binsize]
+color = true
+profile = "release"
+output = ["symbols", "segments"]
+ld-file = "targets/stm32l051/memory.x"
+sort = "asc"
+size-threshold = [200, 500]
+percentage-threshold = [0.5, 1.0]
