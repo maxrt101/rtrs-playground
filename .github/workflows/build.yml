@@ -22,6 +22,10 @@ jobs:
         with:
           toolchain: nightly
           override: true
+      - name: Install rustup targets
+        run: |
+          rustup target addthumbv6m-none-eabi
+          rustup target thumbv7em-none-eabihf
       - name: Build Debug
         run: cargo build
       - name: Build Release
