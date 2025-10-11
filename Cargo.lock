@@ -131,6 +131,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "envint"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b927ac994b244f91baa8fb3e17748bd36ae250b49df1729c09cf84c75b446358"
+dependencies = [
+ "syn",
+]
+
+[[package]]
 name = "fugit"
 version = "0.3.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -270,6 +279,7 @@ name = "rtrs"
 version = "0.1.0"
 dependencies = [
  "embedded-hal",
+ "envint",
  "heapless",
  "void",
 ]

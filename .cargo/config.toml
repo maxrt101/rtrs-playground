@@ -1,3 +1,7 @@
+[env]
+RTRS_STORAGE_FIXED_SIZE = "32"
+RTRS_LOG_META_FIXED_SIZE = "32"
+
 
 [profile.dev]
 opt-level = "s"
