@@ -3,7 +3,7 @@ use core::alloc::Layout;
 use core::any::Any;
 
 use rtrs::object::Object;
-use rtrs::time::{TimeProvider, Timeout};
+use rtrs::time::TimeProvider;
 use rtrs::task::{Event, ExecutionContext, Task};
 use rtrs::log::console::CONSOLE_OBJECT_NAME;
 
@@ -33,7 +33,6 @@ use rtrs::{
 extern crate alloc;
 
 use alloc::boxed::Box;
-use alloc::vec::Vec;
 use core::ops::DerefMut;
 use core::sync::atomic::{AtomicUsize, Ordering};
 use core::task::Poll;
@@ -412,22 +411,4 @@ pub(crate) fn test_task_object() {
     print_objects();
 }
 
-struct __StaticBuf<T, const N: usize> {
-    data: [T; N],
-}
-
-enum __Buf<'a, T> {
-    Static(usize, *mut T),
-    Dynamic(&'a mut Vec<T>),
-}
-
-impl<const N: usize, T> From<__StaticBuf<T, N>> for __Buf<'_, T> {
-    fn from(value: __StaticBuf<T, N>) -> Self {
-        __Buf::Static(N, value.data.as_ptr() as *mut T)
-    }
-}
-
-// struct Storage<T> {
-//     
-// }
 
