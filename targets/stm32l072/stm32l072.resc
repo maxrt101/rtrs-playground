@@ -1,13 +1,13 @@
 using sysbus
 
 # Create machine
-mach create "stm32l0x1"
+mach create "stm32l072"
 
-# Copy machine platform from STM32L071
-machine LoadPlatformDescription @platforms/cpus/stm32l071.repl
+# Copy machine platform from STM32L072
+machine LoadPlatformDescription @platforms/cpus/stm32l072.repl
 
 # Load compiled ELF
-sysbus LoadELF @target/thumbv6m-none-eabi/release/stm32l051
+sysbus LoadELF @target/thumbv6m-none-eabi/release/stm32l072
 
 # Will show USART1 window (though using run.sh/console.sh makes this redundant)
 showAnalyzer usart1

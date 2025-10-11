@@ -2,7 +2,7 @@
 members = [
     "app",
     "rtrs",
-    "targets/stm32l051",
+    "targets/stm32l072",
     "targets/stm32h743",
 ]
 resolver = "3"
