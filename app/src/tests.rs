@@ -107,7 +107,7 @@ fn monitor(ctx: &ExecutionContext) {
     println!("[monitor] PAUSE");
 
     loop {
-        if let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read_blocking(Timeout::infinite())) {
+        if let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
             match key as char {
                 'r' => {
                     println!("[monitor] RESUME");
@@ -135,7 +135,7 @@ fn monitor(ctx: &ExecutionContext) {
 
 async fn task_monitor(ctx: &ExecutionContext) {
     loop {
-        if let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read_blocking(Timeout::infinite())) {
+        if let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
             if key == rtrs::ASCII_KEY_CR || key == 'p' as u8 {
                 monitor(ctx);
             }
@@ -293,13 +293,13 @@ pub(crate) fn test_box() {
 }
 
 pub(crate) fn test_heap() {
-    println!("Test Heap");
-
     unsafe {
-        println!("TEST_HEAP: {:?} buf={:?}", &crate::GLOBAL_HEAP as *const _, crate::GLOBAL_HEAP.buffer().as_ptr());
+        println!("GLOBAL_HEAP: {:?} buf={:?}", &crate::GLOBAL_HEAP as *const _, crate::GLOBAL_HEAP.buffer().as_ptr());
     }
 
     crate::GLOBAL_HEAP.dump();
+
+    println!();
 
     let ptr1 = crate::GLOBAL_HEAP.allocate(unsafe { Layout::from_size_align_unchecked(10, 4) });
 
@@ -382,65 +382,34 @@ async fn test_object_task1() -> u8 {
 }
 
 pub(crate) fn test_task_object() {
-    info!("TestTaskObject");
-    info!("Options:");
-    info!(" 0 - Set COUNTER value");
-    info!(" 1 - Add task to storage");
-    info!(" 2 - Cycle task");
-    info!(" 3 - Remove task from storage");
-    info!(" q - Quit");
+    fn print_objects() {
+        print!("Objects: ");
+        for obj in rtrs::object::STORAGE.lock().keys() {
+            print!("{} ", obj);
+        }
+        println!();
+    }
 
-    print!("> ");
+    TEST_OBJECT_COUNTER.store(5, Ordering::Release);
+    object_insert!("task1", Task1::new(Task::new(test_object_task1())));
 
-    while let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read_blocking(Timeout::infinite())) {
-        println!("{}", key as char);
+    print_objects();
 
-        match key as char {
-            '0' => {
-                info!("Input 1 char (0-9)");
-                print!("> ");
-                if let Some(val) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read_blocking(Timeout::infinite())) {
-                    if val >= 48 && val <= 57 {
-                        TEST_OBJECT_COUNTER.store((val - 48) as usize, Ordering::Release);
-                        continue;
-                    }
-                }
-                error!("Invalid input");
+    loop {
+        match object_with_mut!("task1", Task1, t, t.poll()) {
+            Poll::Ready(res) => {
+                info!("task1 finished with result: {}", res);
+                break;
             }
-            '1' => {
-                if rtrs::object::STORAGE.lock().has_object("task1") {
-                    error!("Object 'task1' already present");
-                } else {
-                    object_insert!("task1", Task1::new(Task::new(test_object_task1())));
-                }
-            }
-            '2' => {
-                match object_with_mut!("task1", Task1, t, t.poll()) {
-                    Poll::Ready(res) => {
-                        info!("task1 finished with result: {}", res);
-                    }
-                    Poll::Pending => {
-                        trace!("task1 running...");
-                    }
-                }
-            }
-            '3' => {
-                if rtrs::object::STORAGE.lock().has_object("task1") {
-                    object_remove!("task1");
-                } else {
-                    error!("Object 'task1' does not exist");
-                }
-            }
-            'q' => {
-                return;
-            }
-            _ => {
-                return;
+            Poll::Pending => {
+                trace!("task1 running...");
             }
         }
-
-        print!("> ");
     }
+
+    object_remove!("task1");
+
+    print_objects();
 }
 
 struct __StaticBuf<T, const N: usize> {
