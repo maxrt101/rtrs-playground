@@ -14,9 +14,10 @@ use rtrs::{
     bit_if,
     log,
     logger,
+    trace,
+    info,
 };
 use rtrs::log::Severity;
-// use crate::bsp;
 
 logger!("SHELL");
 
@@ -25,7 +26,7 @@ fn cmd_panic(mut args: SplitWhitespace) -> i8 {
 }
 
 fn cmd_crash(_args: SplitWhitespace) -> i8 {
-    // bsp::Board::crash();
+    crate::board::BoardInterface::callback(crate::board::CallbackType::TriggerCrash);
     0
 }
 
@@ -70,14 +71,45 @@ fn cmd_test(mut args: SplitWhitespace) -> i8 {
         }
     }
 
-    bit_if!(tests, Test::Task,     crate::test_tasks());
-    bit_if!(tests, Test::TaskIrq,  crate::test_irq_tasks());
-    bit_if!(tests, Test::TaskNest, crate::test_nested_tasks());
-    bit_if!(tests, Test::TaskObj,  crate::test_task_object());
-    bit_if!(tests, Test::Logger,   crate::test_logger());
-    bit_if!(tests, Test::Hexdump,  crate::test_hexdump());
-    bit_if!(tests, Test::Box,      crate::test_box());
-    bit_if!(tests, Test::Heap,     crate::test_heap());
+    bit_if!(tests, Test::Task, {
+        trace!("Running Test::Task");
+        crate::test_tasks()
+    });
+
+    bit_if!(tests, Test::TaskIrq, {
+        trace!("Running Test::TaskIrq");
+        crate::test_irq_tasks()
+    });
+
+    bit_if!(tests, Test::TaskNest, {
+        trace!("Running Test::TaskNest");
+        crate::test_nested_tasks()
+    });
+
+    bit_if!(tests, Test::TaskObj, {
+        trace!("Running Test::TaskObj");
+        crate::test_task_object()
+    });
+
+    bit_if!(tests, Test::Logger, {
+        trace!("Running Test::TestLogger");
+        crate::test_logger()
+    });
+
+    bit_if!(tests, Test::Hexdump, {
+        trace!("Running Test::Hexdump");
+        crate::test_hexdump()
+    });
+
+    bit_if!(tests, Test::Box, {
+        trace!("Running Test::Box");
+        crate::test_box()
+    });
+
+    bit_if!(tests, Test::Heap, {
+        trace!("Running Test::Heap");
+        crate::test_heap()
+    });
 
     0
 }
@@ -204,6 +236,11 @@ fn cmd_log(mut args: SplitWhitespace) -> i8 {
     0
 }
 
+fn cmd_time(_: SplitWhitespace) -> i8 {
+    info!("tick: {}", rtrs::time::global_tick());
+    0
+}
+
 pub fn create_shell() -> rtrs::shell::Shell {
     rtrs::shell::Shell::new(commands!(
         command!("panic",   "Trigger a panic", cmd_panic),
@@ -212,5 +249,6 @@ pub fn create_shell() -> rtrs::shell::Shell {
         command!("obj",     "Object storage",  cmd_obj),
         command!("mem",     "Memory control",  cmd_mem),
         command!("log",     "Logging control", cmd_log),
+        command!("time",    "Get tick",        cmd_time),
     ))
 }
