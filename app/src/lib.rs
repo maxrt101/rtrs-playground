@@ -5,6 +5,7 @@ mod cmd;
 mod led;
 mod logs;
 mod tests;
+pub mod board;
 
 extern crate alloc;
 
@@ -24,15 +25,18 @@ use crate::cmd::create_shell;
 heap_allocator!(global, pub GLOBAL_HEAP, 2048);
 
 pub fn main() -> ! {
-    // let _board = bsp::init();
+    board::BoardInterface::register_callback(board::CallbackType::Systick, || {
+        SYSTICK_EVENT.trigger();
+    });
 
     logs::init_logs();
 
-    // bsp::Board::register_callback(bsp::CallbackType::Systick, || {
-    //     SYSTICK_EVENT.trigger();
-    // });
-
-    println!("\r\n{}##### STM32L051-RS #####{}\r\n", rtrs::ANSI_COLOR_FG_YELLOW, rtrs::ANSI_TEXT_RESET);
+    println!(
+        "\r\n{}----- rtrs-playground {} -----{}\r\n",
+        rtrs::ANSI_COLOR_FG_YELLOW,
+        env!("CARGO_PKG_VERSION"),
+        rtrs::ANSI_TEXT_RESET
+    );
 
     let mut shell = create_shell();
 
