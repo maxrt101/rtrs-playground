@@ -13,65 +13,18 @@ use cortex_m_rt::entry;
 use stm32l0xx_hal as hal;
 use hal::prelude::*;
 
-use rtrs::sync::{Mutex, RaceAction};
-
 pub const GREEN_LED_NAME: &str = "led_green";
 
-#[allow(dead_code)]
-pub struct Board {
-    // peripherals: hal::pac::Peripherals,
-    core_peripherals: cortex_m::Peripherals,
-    rcc: hal::rcc::Rcc,
-    // pwr: hal::pwr::PWR
+#[unsafe(no_mangle)]
+fn rtrs_lock_acquire() {
+    cortex_m::interrupt::disable();
 }
 
-pub enum CallbackType {
-    Systick
+#[unsafe(no_mangle)]
+fn rtrs_lock_release() {
+    unsafe { cortex_m::interrupt::enable() };
 }
 
-struct Callbacks {
-    systick: Option<fn()>
-}
-
-impl Callbacks {
-    const fn empty() -> Self {
-        Self { systick: None }
-    }
-}
-
-static CALLBACKS: Mutex<Callbacks> = Mutex::new(Callbacks::empty(), RaceAction::Crash);
-
-impl Board {
-    pub fn register_callback(t: CallbackType, f: fn()) {
-        let mut cbs = CALLBACKS.lock_mut();
-
-        match t {
-            CallbackType::Systick => {
-                (*cbs).systick = Some(f);
-            }
-        }
-    }
-
-    pub fn callback(t: CallbackType) {
-        let cbs = CALLBACKS.lock_mut();
-
-        match t {
-            CallbackType::Systick => {
-                if let Some(f) = (*cbs).systick {
-                    f()
-                }
-            }
-        }
-    }
-
-    #[inline(never)]
-    pub fn crash() -> ! {
-        unsafe {
-            core::arch::asm!("udf #0");
-        }
-        unreachable!()
-    }
-}
 
 fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
     syst.set_clock_source(SystClkSource::Core);
@@ -81,7 +34,8 @@ fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
     syst.enable_interrupt();
 }
 
-pub fn init() -> Board {
+#[entry]
+unsafe fn main() -> ! {
     let peripherals = hal::pac::Peripherals::take().unwrap();
     let mut rcc = peripherals.RCC.freeze(hal::rcc::Config::hsi16());
     // let pwr = hal::pwr::PWR::new(peripherals.PWR, &mut rcc);
@@ -102,36 +56,13 @@ pub fn init() -> Board {
         &mut rcc
     ).unwrap();
 
-    // let mut lptim = hal::lptim::LpTimer::init_periodic(peripherals.LPTIM, &mut pwr, &mut rcc, hal::lptim::ClockSrc::Lse);
-    // lptim.start(1_000_000.Hz());
-
     objects::init_objects(log_serial, gpioa.pa15.into_push_pull_output());
 
-    // use core::fmt::Write;
-    // use rtrs::println;
-    // println!("core_freq: {}", rcc.clocks.sys_clk().0);
-
-    Board {
-        // peripherals,
-        core_peripherals,
-        rcc,
-        // pwr
-    }
-}
-
-#[unsafe(no_mangle)]
-fn rtrs_lock_acquire() {
-    cortex_m::interrupt::disable();
-}
-
-#[unsafe(no_mangle)]
-fn rtrs_lock_release() {
-    unsafe { cortex_m::interrupt::enable() };
-}
-
-#[entry]
-unsafe fn main() -> ! {
-    let _ = init();
+    app::board::BoardInterface::register_callback(app::board::CallbackType::TriggerCrash, || {
+        unsafe {
+            core::arch::asm!("udf #0");
+        }
+    });
 
     app::main();
 }

@@ -16,62 +16,15 @@ use hal::prelude::*;
 
 use rtrs::sync::{Mutex, RaceAction};
 
-pub const GREEN_LED_NAME: &str = "led_green";
 
-#[allow(dead_code)]
-pub struct Board {
-    // peripherals: hal::pac::Peripherals,
-    // core_peripherals: cortex_m::Peripherals,
-    // rcc: hal::pac::RCC,
-    // pwr: hal::pwr::PWR
+#[unsafe(no_mangle)]
+fn rtrs_lock_acquire() {
+    cortex_m::interrupt::disable();
 }
 
-pub enum CallbackType {
-    Systick
-}
-
-struct Callbacks {
-    systick: Option<fn()>
-}
-
-impl Callbacks {
-    const fn empty() -> Self {
-        Self { systick: None }
-    }
-}
-
-static CALLBACKS: Mutex<Callbacks> = Mutex::new(Callbacks::empty(), RaceAction::Crash);
-
-impl Board {
-    pub fn register_callback(t: CallbackType, f: fn()) {
-        let mut cbs = CALLBACKS.lock_mut();
-
-        match t {
-            CallbackType::Systick => {
-                (*cbs).systick = Some(f);
-            }
-        }
-    }
-
-    pub fn callback(t: CallbackType) {
-        let cbs = CALLBACKS.lock_mut();
-
-        match t {
-            CallbackType::Systick => {
-                if let Some(f) = (*cbs).systick {
-                    f()
-                }
-            }
-        }
-    }
-
-    #[inline(never)]
-    pub fn crash() -> ! {
-        unsafe {
-            core::arch::asm!("udf #0");
-        }
-        unreachable!()
-    }
+#[unsafe(no_mangle)]
+fn rtrs_lock_release() {
+    unsafe { cortex_m::interrupt::enable() };
 }
 
 fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
@@ -82,12 +35,15 @@ fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
     syst.enable_interrupt();
 }
 
-pub fn init() -> Board {
+#[entry]
+unsafe fn main() -> ! {
     let peripherals = hal::pac::Peripherals::take().unwrap();
 
     let rcc = peripherals.RCC.constrain();
     let pwr = peripherals.PWR.constrain();
     let pwrcfg = pwr.freeze();
+    
+    // FIXME: Renode crashes after pwr.freeze()
 
     // let ccdr = rcc
     //     .sys_ck(100.MHz())   // core clock
@@ -130,28 +86,6 @@ pub fn init() -> Board {
     // use core::fmt::Write;
     // use rtrs::println;
     // println!("core_freq: {}", rcc.clocks.sys_clk().0);
-
-    Board {
-        // peripherals,
-        // core_peripherals,
-        // rcc,
-        // pwr
-    }
-}
-
-#[unsafe(no_mangle)]
-fn rtrs_lock_acquire() {
-    cortex_m::interrupt::disable();
-}
-
-#[unsafe(no_mangle)]
-fn rtrs_lock_release() {
-    unsafe { cortex_m::interrupt::enable() };
-}
-
-#[entry]
-unsafe fn main() -> ! {
-    let _ = init();
 
     app::main();
 }

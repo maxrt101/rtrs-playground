@@ -4,7 +4,7 @@ use core::sync::atomic;
 use core::fmt::Write;
 use rtrs::{object_with, println};
 
-use crate::{print_regs, print_reg, Board, CallbackType};
+use crate::{print_regs, print_reg};
 
 #[exception]
 unsafe fn HardFault(ef: &cortex_m_rt::ExceptionFrame) -> ! {
@@ -45,6 +45,6 @@ fn SysTick() {
         time.increment()
     });
 
-    Board::callback(CallbackType::Systick)
+    app::board::BoardInterface::callback(app::board::CallbackType::Systick)
 }
 
