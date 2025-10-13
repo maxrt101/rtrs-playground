@@ -3,10 +3,11 @@ use core::fmt::Write;
 
 use rtrs::log::meta::ModuleMetaManager;
 use rtrs::object::STORAGE;
+use rtrs::log::Severity;
 use rtrs::{
     println,
     command,
-    commands,
+    shell,
     object_with,
     object_with_mut,
     bit_set,
@@ -16,7 +17,6 @@ use rtrs::{
     trace,
     info,
 };
-use rtrs::log::Severity;
 
 logger!("SHELL");
 
@@ -51,15 +51,15 @@ fn cmd_test(args: &[&str]) -> i8 {
 
     while let Some(arg) = iter.next() {
         match *arg {
-            "all" => tests = 0xFF,
-            "task" => bit_set!(tests, Test::Task),
-            "task-irq" => bit_set!(tests, Test::TaskIrq),
+            "all"       => tests = 0xFF,
+            "task"      => bit_set!(tests, Test::Task),
+            "task-irq"  => bit_set!(tests, Test::TaskIrq),
             "task-nest" => bit_set!(tests, Test::TaskNest),
-            "task-obj" => bit_set!(tests, Test::TaskObj),
-            "logger" => bit_set!(tests, Test::Logger),
-            "hexdump" => bit_set!(tests, Test::Hexdump),
-            "box" => bit_set!(tests, Test::Box),
-            "heap" => bit_set!(tests, Test::Heap),
+            "task-obj"  => bit_set!(tests, Test::TaskObj),
+            "logger"    => bit_set!(tests, Test::Logger),
+            "hexdump"   => bit_set!(tests, Test::Hexdump),
+            "box"       => bit_set!(tests, Test::Box),
+            "heap"      => bit_set!(tests, Test::Heap),
             "help" => {
                 help();
                 return 0;
@@ -238,7 +238,7 @@ fn cmd_time(_: &[&str]) -> i8 {
 }
 
 pub fn create_shell() -> rtrs::shell::Shell {
-    rtrs::shell::Shell::new(commands!(
+    shell!(
         command!("panic",   "Trigger a panic", cmd_panic),
         command!("crash",   "Trigger a crash", cmd_crash),
         command!("test",    "Run Tests",       cmd_test),
@@ -246,5 +246,5 @@ pub fn create_shell() -> rtrs::shell::Shell {
         command!("mem",     "Memory control",  cmd_mem),
         command!("log",     "Logging control", cmd_log),
         command!("time",    "Get tick",        cmd_time),
-    ))
+    )
 }
