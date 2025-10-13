@@ -32,7 +32,7 @@ pub fn main() -> ! {
     logs::init_logs();
 
     println!(
-        "\r\n{}----- rtrs-playground {} -----{}\r\n",
+        "\r\n{}----- rtrs-playground v{} -----{}\r\n",
         rtrs::ANSI_COLOR_FG_YELLOW,
         env!("CARGO_PKG_VERSION"),
         rtrs::ANSI_TEXT_RESET

@@ -4,6 +4,7 @@ use core::fmt::Write;
 use rtrs::log::meta::ModuleMetaManager;
 use rtrs::object::STORAGE;
 use rtrs::log::Severity;
+use rtrs::shell::script::Runtime;
 use rtrs::{
     println,
     command,
@@ -20,16 +21,16 @@ use rtrs::{
 
 logger!("SHELL");
 
-fn cmd_panic(args: &[&str]) -> i8 {
+fn cmd_panic(_rt: &mut Runtime, args: &[&str]) -> i8 {
     panic!("{}", args.get(0).map_or("Manual panic", |v| v));
 }
 
-fn cmd_crash(_args: &[&str]) -> i8 {
+fn cmd_crash(_rt: &mut Runtime, _args: &[&str]) -> i8 {
     crate::board::BoardInterface::callback(crate::board::CallbackType::TriggerCrash);
     0
 }
 
-fn cmd_test(args: &[&str]) -> i8 {
+fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
     fn help() {
         println!("test [help|all|task|task-irq|task-nest|task-obj|logger|hexdump|box|heap]")
     }
@@ -115,7 +116,7 @@ fn cmd_test(args: &[&str]) -> i8 {
     0
 }
 
-fn cmd_obj(args: &[&str]) -> i8 {
+fn cmd_obj(_rt: &mut Runtime, args: &[&str]) -> i8 {
     match args.get(0).map(|v| *v) {
         Some("list") | None => {
             let storage = STORAGE.lock();
@@ -131,7 +132,7 @@ fn cmd_obj(args: &[&str]) -> i8 {
     0
 }
 
-fn cmd_mem(args: &[&str]) -> i8 {
+fn cmd_mem(_rt: &mut Runtime, args: &[&str]) -> i8 {
     fn help() {
         println!("mem [help|info|alloc|free]");
     }
@@ -169,7 +170,7 @@ fn cmd_mem(args: &[&str]) -> i8 {
     0
 }
 
-fn cmd_log(args: &[&str]) -> i8 {
+fn cmd_log(_rt: &mut Runtime, args: &[&str]) -> i8 {
     match args.get(0).map(|v| *v) {
         Some("help") => {
             println!("log help - Shows this message");
@@ -232,19 +233,25 @@ fn cmd_log(args: &[&str]) -> i8 {
     0
 }
 
-fn cmd_time(_: &[&str]) -> i8 {
+fn cmd_time(_rt: &mut Runtime, _args: &[&str]) -> i8 {
     info!("tick: {}", rtrs::time::global_tick());
     0
 }
 
 pub fn create_shell() -> rtrs::shell::Shell {
     shell!(
-        command!("panic",   "Trigger a panic", cmd_panic),
-        command!("crash",   "Trigger a crash", cmd_crash),
-        command!("test",    "Run Tests",       cmd_test),
-        command!("obj",     "Object storage",  cmd_obj),
-        command!("mem",     "Memory control",  cmd_mem),
-        command!("log",     "Logging control", cmd_log),
-        command!("time",    "Get tick",        cmd_time),
+        // Builtin commands
+        command!("help",     "Prints help",     shell::builtins::cmd_help),
+        command!("echo",     "Echo args",       shell::builtins::cmd_echo),
+        command!("env",      "Prints env vars", shell::builtins::cmd_env),
+        command!("set",      "Set env var val", shell::builtins::cmd_set),
+        // Custom commands
+        command!("panic",   "Trigger a panic",  cmd_panic),
+        command!("crash",   "Trigger a crash",  cmd_crash),
+        command!("test",    "Run Tests",        cmd_test),
+        command!("obj",     "Object storage",   cmd_obj),
+        command!("mem",     "Memory control",   cmd_mem),
+        command!("log",     "Logging control",  cmd_log),
+        command!("time",    "Get tick",         cmd_time),
     )
 }

@@ -306,10 +306,6 @@ pub(crate) fn test_heap() {
     crate::GLOBAL_HEAP.free(ptr3);
 
     crate::GLOBAL_HEAP.dump();
-
-    // crate::GLOBAL_HEAP.alloc(48, 4);
-    // crate::GLOBAL_HEAP.alloc(0, 4); // Won't crash
-    // crate::GLOBAL_HEAP.alloc(4, 4); // Will crash
 }
 
 
