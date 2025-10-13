@@ -4,7 +4,7 @@
 DELAY="0.1"
 
 # UART console file path
-FILE="/tmp/renode-gs-console"
+FILE="/tmp/renode-rtrs-console"
 
 # Starts minicom and returns exit code when done
 start() {
