@@ -1,5 +1,4 @@
 use core::alloc::Layout;
-use core::str::SplitWhitespace;
 use core::fmt::Write;
 
 use rtrs::log::meta::ModuleMetaManager;
@@ -21,16 +20,16 @@ use rtrs::log::Severity;
 
 logger!("SHELL");
 
-fn cmd_panic(mut args: SplitWhitespace) -> i8 {
-    panic!("{}", args.next().unwrap_or("Manual panic"));
+fn cmd_panic(args: &[&str]) -> i8 {
+    panic!("{}", args.get(0).map_or("Manual panic", |v| v));
 }
 
-fn cmd_crash(_args: SplitWhitespace) -> i8 {
+fn cmd_crash(_args: &[&str]) -> i8 {
     crate::board::BoardInterface::callback(crate::board::CallbackType::TriggerCrash);
     0
 }
 
-fn cmd_test(mut args: SplitWhitespace) -> i8 {
+fn cmd_test(args: &[&str]) -> i8 {
     fn help() {
         println!("test [help|all|task|task-irq|task-nest|task-obj|logger|hexdump|box|heap]")
     }
@@ -48,8 +47,10 @@ fn cmd_test(mut args: SplitWhitespace) -> i8 {
 
     let mut tests: u32 = 0;
 
-    while let Some(arg) = args.next() {
-        match arg {
+    let mut iter = args.iter();
+
+    while let Some(arg) = iter.next() {
+        match *arg {
             "all" => tests = 0xFF,
             "task" => bit_set!(tests, Test::Task),
             "task-irq" => bit_set!(tests, Test::TaskIrq),
@@ -114,8 +115,8 @@ fn cmd_test(mut args: SplitWhitespace) -> i8 {
     0
 }
 
-fn cmd_obj(mut args: SplitWhitespace) -> i8 {
-    match args.next() {
+fn cmd_obj(args: &[&str]) -> i8 {
+    match args.get(0).map(|v| *v) {
         Some("list") | None => {
             let storage = STORAGE.lock();
             for key in storage.keys() {
@@ -130,17 +131,17 @@ fn cmd_obj(mut args: SplitWhitespace) -> i8 {
     0
 }
 
-fn cmd_mem(mut args: SplitWhitespace) -> i8 {
+fn cmd_mem(args: &[&str]) -> i8 {
     fn help() {
         println!("mem [help|info|alloc|free]");
     }
 
-    match args.next() {
+    match args.get(0).map(|v| *v) {
         Some("info") => {
             crate::GLOBAL_HEAP.dump();
         }
         Some("alloc") => {
-            let size = match args.next() {
+            let size = match args.get(1) {
                 Some(arg) => arg.parse::<usize>().unwrap_or(0),
                 None => 0
             };
@@ -148,7 +149,7 @@ fn cmd_mem(mut args: SplitWhitespace) -> i8 {
             println!("alloc({}): {:?}", size, ptr);
         }
         Some("free") => {
-            let ptr = match args.next() {
+            let ptr = match args.get(1) {
                 Some(arg) => usize::from_str_radix(arg, 16).unwrap_or(0),
                 None => 0
             };
@@ -168,8 +169,8 @@ fn cmd_mem(mut args: SplitWhitespace) -> i8 {
     0
 }
 
-fn cmd_log(mut args: SplitWhitespace) -> i8 {
-    match args.next() {
+fn cmd_log(args: &[&str]) -> i8 {
+    match args.get(0).map(|v| *v) {
         Some("help") => {
             println!("log help - Shows this message");
             println!("log / log list - Shows all modules");
@@ -179,53 +180,48 @@ fn cmd_log(mut args: SplitWhitespace) -> i8 {
             println!("log print|p SEV LVL ... - Print log message");
         }
         Some("list") | None => {
-            object_with!(rtrs::log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
+            object_with!(log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
                 for (name, meta) in meta.iter() {
                     println!("{}: >{} <{}", name, meta.severity, meta.level);
                 }
             });
         }
         Some("severity") | Some("s") => {
-            let module = args.next().unwrap_or("");
-            let value = args.next().unwrap_or("");
+            let module = args.get(1).map_or("", |v| v);
+            let value = args.get(2).map_or("", |v| v);
 
-            object_with_mut!(rtrs::log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
+            object_with_mut!(log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
                 meta.set_severity(module, value.into());
             });
         }
         Some("level") | Some("l") => {
-            let module = args.next().unwrap_or("");
-            let value = args.next().unwrap_or("");
+            let module = args.get(1).map_or("", |v| v);
+            let value = args.get(2).map_or("", |v| v);
 
-            object_with_mut!(rtrs::log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
+            object_with_mut!(log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
                 meta.set_level(module, value.parse().unwrap_or(0));
             });
         }
         Some("print") | Some("p") => {
-            let severity: Severity = args.next().unwrap_or("").into();
-            let level = args.next().unwrap_or("").parse().unwrap_or(0);
+            let severity: Severity = args.get(1).map_or("", |v| v).into();
+            let level = args.get(2).map_or("", |v| v).parse().unwrap_or(0);
 
             let mut buf = alloc::string::String::new();
 
-            loop {
-                match args.next() {
-                    Some(arg) => {
-                        write!(buf, "{} ", arg).unwrap();
-                    }
-                    None => break,
-                }
+            for arg in args[1..].iter() {
+                write!(buf, "{} ", arg).unwrap();
             }
 
             log!(severity, level, "{}", buf);
         }
         Some(module) => {
-            let sev = args.next().unwrap_or("");
-            let lev = args.next().unwrap_or("");
+            let sev = args.get(1).map_or("", |v| v);
+            let lev = args.get(2).map_or("", |v| v);
 
             if sev.is_empty() && lev.is_empty() {
                 // TODO: Get
             } else {
-                object_with_mut!(rtrs::log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
+                object_with_mut!(log::LOGGER_META_OBJECT_NAME, ModuleMetaManager, meta, {
                     meta.set_severity(module, sev.into());
                     meta.set_level(module, lev.parse().unwrap_or(0));
                 });
@@ -236,7 +232,7 @@ fn cmd_log(mut args: SplitWhitespace) -> i8 {
     0
 }
 
-fn cmd_time(_: SplitWhitespace) -> i8 {
+fn cmd_time(_: &[&str]) -> i8 {
     info!("tick: {}", rtrs::time::global_tick());
     0
 }
