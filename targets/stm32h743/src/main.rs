@@ -18,12 +18,12 @@ use rtrs::sync::{Mutex, RaceAction};
 
 
 #[unsafe(no_mangle)]
-fn rtrs_lock_acquire() {
+fn rtrs_critical_section_acquire() {
     cortex_m::interrupt::disable();
 }
 
 #[unsafe(no_mangle)]
-fn rtrs_lock_release() {
+fn rtrs_critical_section_release() {
     unsafe { cortex_m::interrupt::enable() };
 }
 

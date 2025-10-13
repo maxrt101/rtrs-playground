@@ -16,15 +16,14 @@ use hal::prelude::*;
 pub const GREEN_LED_NAME: &str = "led_green";
 
 #[unsafe(no_mangle)]
-fn rtrs_lock_acquire() {
+fn rtrs_critical_section_acquire() {
     cortex_m::interrupt::disable();
 }
 
 #[unsafe(no_mangle)]
-fn rtrs_lock_release() {
+fn rtrs_critical_section_release() {
     unsafe { cortex_m::interrupt::enable() };
 }
-
 
 fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
     syst.set_clock_source(SystClkSource::Core);
