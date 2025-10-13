@@ -102,42 +102,10 @@ async fn task_irq2(_ctx: &ExecutionContext) {
     }
 }
 
-fn monitor(ctx: &ExecutionContext) {
-    println!("[monitor] PAUSE");
-
-    loop {
-        if let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
-            match key as char {
-                'r' => {
-                    println!("[monitor] RESUME");
-                    break;
-                }
-                'h' | '?' => {
-                    println!("[monitor] Available commands:\r\n\t?/h - Help\r\n\tp/<CR> - Pause\r\n\tr - Resume\r\n\tb - Beep\r\n\tq - Quit (stop all tasks)");
-                }
-                'b' => {
-                    println!("[monitor] <Beep>{}", rtrs::ASCII_KEY_BEL as char);
-                }
-                'q' => {
-                    println!("[monitor] Quit");
-                    ctx.set_should_run(false);
-                    break;
-                }
-                '\0' => {}
-                key => {
-                    println!("[monitor] Unknown command ({}). Use '?' to get help", key as u8);
-                }
-            }
-        }
-    }
-}
-
 async fn task_monitor(ctx: &ExecutionContext) {
     loop {
-        if let Some(key) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
-            if key == rtrs::ASCII_KEY_CR || key == 'p' as u8 {
-                monitor(ctx);
-            }
+        if let Some(_) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
+            ctx.set_should_run(false);
         }
 
         task_sleep!(1);
@@ -150,6 +118,8 @@ pub(crate) fn test_irq_tasks() {
     let mut t1 = Task::new(task_irq1(&ctx));
     let mut t2 = Task::new(task_irq2(&ctx));
     let mut t3 = Task::new(task_monitor(&ctx));
+
+    info!("Press any key to stop");
 
     tasks_run_with_ctx!(ctx, t1, t2, t3);
 
