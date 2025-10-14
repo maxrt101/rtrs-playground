@@ -5,6 +5,7 @@ RTRS_SHELL_INPUT_SIZE    = "64"
 RTRS_SHELL_ARGS_SIZE     = "16"
 RTRS_SHELL_ENV_SIZE      = "16"
 RTRS_SHELL_VAR_SIZE      = "32"
+RTRS_CHANNEL_SIZE        = "8"
 
 [alias]
 build-l072 = "build -Z build-std=alloc,core -Z build-std-features=optimize_for_size --package stm32l072 --bin stm32l072 --target thumbv6m-none-eabi --profile release"
