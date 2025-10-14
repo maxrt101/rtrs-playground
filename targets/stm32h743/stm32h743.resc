@@ -13,7 +13,7 @@ sysbus LoadELF @target/stm32h743/release/app
 showAnalyzer usart3
 
 # USART1 to PTY Terminal Redirection
-emulation CreateUartPtyTerminal "console" "/tmp/renode-gs-console"
+emulation CreateUartPtyTerminal "console" "/tmp/renode-rtrs-console"
 connector Connect sysbus.usart3 console
 
 # USART1 to Socket Terminal Redirection
