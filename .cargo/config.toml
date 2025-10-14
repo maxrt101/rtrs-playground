@@ -1,31 +1,30 @@
 [env]
-RTRS_STORAGE_FIXED_SIZE = "32"
+RTRS_STORAGE_FIXED_SIZE  = "32"
 RTRS_LOG_META_FIXED_SIZE = "32"
-RTRS_SHELL_INPUT_SIZE = "64"
-RTRS_SHELL_ARGS_SIZE = "16"
-RTRS_SHELL_ENV_SIZE = "16"
-RTRS_SHELL_VAR_SIZE = "32"
+RTRS_SHELL_INPUT_SIZE    = "64"
+RTRS_SHELL_ARGS_SIZE     = "16"
+RTRS_SHELL_ENV_SIZE      = "16"
+RTRS_SHELL_VAR_SIZE      = "32"
+
+[alias]
+build-l072 = "build -Z build-std=alloc,core -Z build-std-features=optimize_for_size --package stm32l072 --bin stm32l072 --target thumbv6m-none-eabi --profile release"
 
 [profile.dev]
 opt-level = "s"
-panic = 'abort'
+panic     = 'abort'
 
 [profile.release]
-opt-level = "z"
+opt-level        = "z"
 debug-assertions = false
-overflow-checks = false
-panic = 'abort'
-debug = true
-
-[profile.release-lto]
-inherits = "release"
-lto = true
+overflow-checks  = false
+panic            = 'abort'
+debug            = true
+lto              = true
+#incremental      = false
+#codegen-units    = 1
 
 [profile.dev.package."*"]
 inherits = "dev"
 
 [profile.release.package."*"]
 inherits = "release"
-
-[profile.release-lto.package."*"]
-inherits = "release-lto"
