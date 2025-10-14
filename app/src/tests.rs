@@ -377,4 +377,14 @@ pub(crate) fn test_task_object() {
     print_objects();
 }
 
+pub(crate) fn test_task_sched() {
+    let mut sched = rtrs::task::sched::Scheduler::new();
+
+    sched.attach(Task::new(worker("worker1", 4)));
+    sched.attach(Task::new(worker("worker2", 5)));
+    sched.attach(Task::new(worker("worker3", 3)));
+
+    sched.run_to_completion();
+}
+
 

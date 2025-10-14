@@ -40,6 +40,7 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
         TaskIrq,
         TaskNest,
         TaskObj,
+        TaskSched,
         Logger,
         Hexdump,
         Box,
@@ -52,15 +53,16 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
 
     while let Some(arg) = iter.next() {
         match *arg {
-            "all"       => tests = 0xFF,
-            "task"      => bit_set!(tests, Test::Task),
-            "task-irq"  => bit_set!(tests, Test::TaskIrq),
-            "task-nest" => bit_set!(tests, Test::TaskNest),
-            "task-obj"  => bit_set!(tests, Test::TaskObj),
-            "logger"    => bit_set!(tests, Test::Logger),
-            "hexdump"   => bit_set!(tests, Test::Hexdump),
-            "box"       => bit_set!(tests, Test::Box),
-            "heap"      => bit_set!(tests, Test::Heap),
+            "all"        => tests = 0xFF,
+            "task"       => bit_set!(tests, Test::Task),
+            "task-irq"   => bit_set!(tests, Test::TaskIrq),
+            "task-nest"  => bit_set!(tests, Test::TaskNest),
+            "task-obj"   => bit_set!(tests, Test::TaskObj),
+            "task-sched" => bit_set!(tests, Test::TaskSched),
+            "logger"     => bit_set!(tests, Test::Logger),
+            "hexdump"    => bit_set!(tests, Test::Hexdump),
+            "box"        => bit_set!(tests, Test::Box),
+            "heap"       => bit_set!(tests, Test::Heap),
             "help" => {
                 help();
                 return 0;
@@ -91,6 +93,11 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
     bit_if!(tests, Test::TaskObj, {
         trace!("Running Test::TaskObj");
         crate::test_task_object()
+    });
+
+    bit_if!(tests, Test::TaskSched, {
+        trace!("Running Test::TaskSched");
+        crate::test_task_sched()
     });
 
     bit_if!(tests, Test::Logger, {
