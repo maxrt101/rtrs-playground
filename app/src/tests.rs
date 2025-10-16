@@ -387,4 +387,49 @@ pub(crate) fn test_task_sched() {
     sched.run_to_completion();
 }
 
+static SPAWNER_EVENT: Event = Event::new();
+
+async fn spawned() {
+    println!("spawned at {}", rtrs::time::global_tick());
+    task_sleep!(100);
+    SPAWNER_EVENT.trigger();
+}
+
+async fn spawner() {
+    rtrs::task::this::spawn(Task::new(spawned()));
+    (&SPAWNER_EVENT).await;
+    println!("done at {}", rtrs::time::global_tick());
+}
+
+pub(crate) fn test_task_sched_this() {
+    let mut sched = rtrs::task::sched::Scheduler::new();
+
+    sched.attach(Task::new(spawner()));
+
+    sched.run_to_completion();
+}
+
+async fn self_cancel_task() {
+    println!("spawned at {}", rtrs::time::global_tick());
+    task_sleep!(100);
+    println!("done at {}", rtrs::time::global_tick());
+}
+
+async fn self_cancel_runner() {
+    rtrs::task::this::spawn(Task::new(self_cancel_task()));
+    println!("spawning task at {}", rtrs::time::global_tick());
+    rtrs::task::this::cancel();
+    task_yield!();
+    println!("Shouldn't reach here");
+}
+
+pub(crate) fn test_task_sched_cancel() {
+    let mut sched = rtrs::task::sched::Scheduler::new();
+
+    sched.attach(Task::new(self_cancel_runner()));
+
+    sched.run_to_completion();
+}
+
+pub(crate) fn test_task_sched_idle() {}
 
