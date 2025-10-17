@@ -25,7 +25,6 @@ jobs:
       - name: Install rustup targets
         run: |
           rustup target add thumbv6m-none-eabi
-          rustup target add thumbv7em-none-eabihf
       - name: Build Debug
         run: cargo build
       - name: Build Release
