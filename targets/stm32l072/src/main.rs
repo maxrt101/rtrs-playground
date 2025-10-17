@@ -14,6 +14,7 @@ use stm32l0xx_hal as hal;
 use hal::prelude::*;
 
 pub const GREEN_LED_NAME: &str = "led_green";
+pub const BTN_NAME: &str = "btn";
 
 #[unsafe(no_mangle)]
 fn rtrs_critical_section_acquire() {
@@ -55,7 +56,10 @@ unsafe fn main() -> ! {
         &mut rcc
     ).unwrap();
 
-    objects::init_objects(log_serial, gpioa.pa15.into_push_pull_output());
+    let green_led_pin = gpioa.pa5.into_push_pull_output();
+    let btn_pin = gpioa.pa14.into_pull_up_input();
+
+    objects::init_objects(log_serial, green_led_pin, btn_pin);
 
     app::board::BoardInterface::register_callback(app::board::CallbackType::TriggerCrash, || {
         unsafe {
