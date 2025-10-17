@@ -1,7 +1,3 @@
-use core::fmt::Write;
-use core::alloc::Layout;
-use core::any::Any;
-
 use rtrs::object::Object;
 use rtrs::time::TimeProvider;
 use rtrs::task::{Event, ExecutionContext, Task};
@@ -30,12 +26,17 @@ use rtrs::{
     fatal
 };
 
-extern crate alloc;
-
-use alloc::boxed::Box;
-use core::ops::DerefMut;
-use core::sync::atomic::{AtomicUsize, Ordering};
+use core::any::Any;
+use core::fmt::Write;
 use core::task::Poll;
+use core::ops::DerefMut;
+use core::alloc::Layout;
+use core::sync::atomic::{AtomicUsize, Ordering};
+
+extern crate alloc;
+use alloc::boxed::Box;
+
+use void::Void;
 
 logger!("TEST");
 
@@ -432,4 +433,23 @@ pub(crate) fn test_task_sched_cancel() {
 }
 
 pub(crate) fn test_task_sched_idle() {}
+
+pub(crate) fn test_button() {
+    object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off());
+
+    loop {
+        if let Some(_) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
+            break;
+        }
+
+        if object_with!("btn", rtrs::Button<Void>, btn, btn.is_high().unwrap_or(true)) {
+            object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off());
+        } else {
+            object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.on());
+        }
+
+    }
+
+    object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off());
+}
 

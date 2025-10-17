@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 rtrs = { path = "../rtrs", features = ["track_locks", "track_borrows"]}
+void = { version = "1.0.2", default-features = false }

@@ -1,6 +1,3 @@
-use core::alloc::Layout;
-use core::fmt::Write;
-
 use rtrs::log::meta::ModuleMetaManager;
 use rtrs::object::STORAGE;
 use rtrs::log::Severity;
@@ -17,7 +14,13 @@ use rtrs::{
     logger,
     trace,
     info,
+    error,
 };
+
+use core::alloc::Layout;
+use core::fmt::Write;
+
+use void::Void;
 
 logger!("SHELL");
 
@@ -47,6 +50,7 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
         Hexdump,
         Box,
         Heap,
+        Button,
     }
 
     let mut tests: u32 = 0;
@@ -55,7 +59,7 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
 
     while let Some(arg) = iter.next() {
         match *arg {
-            "all"               => tests = 0xFF,
+            "all"               => tests = 0xFFFF,
             "task"              => bit_set!(tests, Test::Task),
             "task-irq"          => bit_set!(tests, Test::TaskIrq),
             "task-nest"         => bit_set!(tests, Test::TaskNest),
@@ -67,6 +71,7 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
             "hexdump"           => bit_set!(tests, Test::Hexdump),
             "box"               => bit_set!(tests, Test::Box),
             "heap"              => bit_set!(tests, Test::Heap),
+            "btn"               => bit_set!(tests, Test::Button),
             "help" => {
                 help();
                 return 0;
@@ -132,6 +137,11 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
     bit_if!(tests, Test::Heap, {
         trace!("Running Test::Heap");
         crate::test_heap()
+    });
+
+    bit_if!(tests, Test::Button, {
+        trace!("Running Test::Button");
+        crate::test_button()
     });
 
     0
@@ -259,6 +269,16 @@ fn cmd_time(_rt: &mut Runtime, _args: &[&str]) -> i8 {
     0
 }
 
+fn cmd_led(_rt: &mut Runtime, args: &[&str]) -> i8 {
+    match args.get(0).map(|v| *v) {
+        Some("on")  => object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.on()),
+        Some("off") => object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off()),
+        _           => error!("Unknown subcommand. Usage: led on|off")
+    }
+
+    0
+}
+
 pub fn create_shell() -> rtrs::shell::Shell {
     shell!(
         // Builtin commands
@@ -274,5 +294,6 @@ pub fn create_shell() -> rtrs::shell::Shell {
         command!("mem",     "Memory control",   cmd_mem),
         command!("log",     "Logging control",  cmd_log),
         command!("time",    "Get tick",         cmd_time),
+        command!("led",     "Control led",      cmd_led),
     )
 }
