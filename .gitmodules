@@ -1,3 +1,6 @@
 [submodule "rtrs"]
 	path = rtrs
 	url = https://github.com/maxrt101/rtrs.git
+[submodule "rtrs-drivers"]
+	path = rtrs-drivers
+	url = https://github.com/maxrt101/rtrs-drivers.git

@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "heapless",
  "rtrs",
+ "rtrs-drivers",
  "void",
 ]
 
@@ -247,6 +248,13 @@ dependencies = [
  "embedded-hal",
  "envint",
  "heapless",
+]
+
+[[package]]
+name = "rtrs-drivers"
+version = "0.1.0"
+dependencies = [
+ "rtrs",
 ]
 
 [[package]]

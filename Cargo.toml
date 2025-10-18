@@ -2,6 +2,7 @@
 members = [
     "app",
     "rtrs",
+    "rtrs-drivers",
     "targets/stm32l072",
 ]
 resolver = "3"
