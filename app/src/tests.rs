@@ -1,9 +1,11 @@
 use rtrs::object::Object;
 use rtrs::time::TimeProvider;
-use rtrs::task::{Event, ExecutionContext, Task};
 use rtrs::log::console::CONSOLE_OBJECT_NAME;
+use rtrs::task::{Event, ExecutionContext, Task};
+use rtrs::gpio::{Command, Action, Pattern, PatternExecutionContext, Input, Output};
 
 use rtrs::{
+    gpio_pattern,
     object_insert,
     object_remove,
     object_with,
@@ -33,10 +35,10 @@ use core::ops::DerefMut;
 use core::alloc::Layout;
 use core::sync::atomic::{AtomicUsize, Ordering};
 
-extern crate alloc;
 use alloc::boxed::Box;
 
 use void::Void;
+use crate::board::{BoardInterface, Callback};
 
 logger!("TEST");
 
@@ -434,22 +436,39 @@ pub(crate) fn test_task_sched_cancel() {
 
 pub(crate) fn test_task_sched_idle() {}
 
+static BEEP: Pattern = gpio_pattern!(
+    Action::Command(Command::On(20)),
+    Action::Command(Command::Off(20)),
+    Action::Repeat(Command::Goto(0), 500),
+    Action::Command(Command::On(250)),
+    Action::Command(Command::Off(250)),
+    Action::Repeat(Command::Goto(3), 500),
+    Action::Command(Command::Goto(0)),
+);
+
 pub(crate) fn test_button() {
-    object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off());
+    let mut last_state = object_with!("btn", Input<Void>, btn, btn.is_high().unwrap_or(true));
+
+    let mut tick: Box<dyn rtrs::time::TickProvider<Tick = u32>> = Box::new(rtrs::time::GlobalTickProvider {});
+    BoardInterface::callback(Callback::MicrosecondTickProvider(&mut tick));
+    let mut ctx = PatternExecutionContext::new(&BEEP, tick);
 
     loop {
         if let Some(_) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
             break;
         }
 
-        if object_with!("btn", rtrs::Button<Void>, btn, btn.is_high().unwrap_or(true)) {
-            object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off());
-        } else {
-            object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.on());
+        let state = object_with!("btn", Input<Void>, btn, btn.is_high().unwrap_or(true));
+
+        if state != last_state {
+            trace!("state {} -> {}", last_state as u8, state as u8);
+            last_state = state;
+        }
+
+        if !state {
+            object_with_mut!("buzzer", Output<Void>, pin, ctx.cycle(&mut pin));
         }
 
     }
-
-    object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off());
 }
 
