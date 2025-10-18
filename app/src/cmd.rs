@@ -2,6 +2,7 @@ use rtrs::log::meta::ModuleMetaManager;
 use rtrs::object::STORAGE;
 use rtrs::log::Severity;
 use rtrs::shell::script::Runtime;
+
 use rtrs::{
     println,
     command,
@@ -14,13 +15,14 @@ use rtrs::{
     logger,
     trace,
     info,
-    error,
+    error
 };
 
 use core::alloc::Layout;
 use core::fmt::Write;
 
 use void::Void;
+use crate::board::{BoardInterface, Callback};
 
 logger!("SHELL");
 
@@ -29,7 +31,7 @@ fn cmd_panic(_rt: &mut Runtime, args: &[&str]) -> i8 {
 }
 
 fn cmd_crash(_rt: &mut Runtime, _args: &[&str]) -> i8 {
-    crate::board::BoardInterface::callback(crate::board::CallbackType::TriggerCrash);
+    crate::board::BoardInterface::callback(crate::board::Callback::TriggerCrash);
     0
 }
 
@@ -271,9 +273,36 @@ fn cmd_time(_rt: &mut Runtime, _args: &[&str]) -> i8 {
 
 fn cmd_led(_rt: &mut Runtime, args: &[&str]) -> i8 {
     match args.get(0).map(|v| *v) {
-        Some("on")  => object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.on()),
-        Some("off") => object_with_mut!("led_green", rtrs::led::Led<Void>, led, led.off()),
+        Some("on")  => object_with_mut!("led_green", rtrs::gpio::Output<Void>, led, { let _ = led.set_high(); }),
+        Some("off") => object_with_mut!("led_green", rtrs::gpio::Output<Void>, led, { let _ = led.set_low();  }),
         _           => error!("Unknown subcommand. Usage: led on|off")
+    }
+
+    0
+}
+
+fn cmd_buzz(_rt: &mut Runtime, args: &[&str]) -> i8 {
+    if args.len() != 1 {
+        error!("Usage: buzz <delay_us>");
+        return 1;
+    }
+
+    let delay: u32 = args.get(0).unwrap_or(&"1000").parse().unwrap_or(1000);
+
+    info!("Selected delay: {}. Press any key to stop", delay);
+
+    let mut state = false;
+
+    while matches!(object_with!(rtrs::log::console::CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()), None) {
+        if state {
+            object_with_mut!("buzzer", rtrs::gpio::Output<Void>, pin, { let _ = pin.set_high(); });
+        } else {
+            object_with_mut!("buzzer", rtrs::gpio::Output<Void>, pin, { let _ = pin.set_low(); });
+        }
+
+        state = !state;
+
+        BoardInterface::callback(Callback::MicrosecondDelay(delay));
     }
 
     0
@@ -295,5 +324,6 @@ pub fn create_shell() -> rtrs::shell::Shell {
         command!("log",     "Logging control",  cmd_log),
         command!("time",    "Get tick",         cmd_time),
         command!("led",     "Control led",      cmd_led),
+        command!("buzz",    "Control buzzer",   cmd_buzz),
     )
 }
