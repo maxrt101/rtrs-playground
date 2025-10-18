@@ -2,7 +2,6 @@
 #![no_main]
 
 mod cmd;
-mod led;
 mod logs;
 mod tests;
 pub mod board;
@@ -24,10 +23,12 @@ use crate::cmd::create_shell;
 
 heap_allocator!(global, pub GLOBAL_HEAP, 2048);
 
+const AUTORUN: Option<&str> = option_env!("AUTORUN");
+
 pub fn main() -> ! {
-    board::BoardInterface::register_callback(board::CallbackType::Systick, || {
+    board::BoardInterface::register_callback(board::CallbackType::Systick(|| {
         SYSTICK_EVENT.trigger();
-    });
+    }));
 
     logs::init_logs();
 
@@ -40,33 +41,11 @@ pub fn main() -> ! {
 
     let mut shell = create_shell();
 
-    // bsp::Board::crash();
-    // panic!("Test panic");
-
-    // Test led performance
-    // const TIMES: u32 = 1000;
-    // println!("led on/off {}: {}", TIMES, timeit!({
-    //     for _ in 0..TIMES {
-    //         object_with_mut!(bsp::GREEN_LED, rtrs::Led, led, {
-    //             led.on();
-    //         });
-    //         object_with_mut!(bsp::GREEN_LED, rtrs::Led, led, {
-    //             led.off();
-    //         });
-    //     }
-    // }));
+    if let Some(cmd) = AUTORUN {
+        shell.run(cmd);
+    }
 
     loop {
-        // object_with_mut!(bsp::GREEN_LED, rtrs::Led, led, {
-        //     if !led.is_running() {
-        //         led.set_pattern(&led::BLINK_PATTERN);
-        //     }
-        //
-        //     led.cycle();
-        // });
-
-        // print!("tick: {}\r", rtrs::time::global_tick());
-
         shell.cycle();
     }
 }
