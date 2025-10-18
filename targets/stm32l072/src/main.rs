@@ -3,18 +3,21 @@
 
 mod exc;
 mod util;
+mod time;
 mod objects;
-mod pins;
 
-use cortex_m::peripheral::SYST;
-use cortex_m::peripheral::syst::SystClkSource;
 use cortex_m_rt::entry;
 
 use stm32l0xx_hal as hal;
 use hal::prelude::*;
 
+extern crate alloc;
+use alloc::boxed::Box;
+
+pub const US_TIMER_NAME: &str = "us_time";
 pub const GREEN_LED_NAME: &str = "led_green";
 pub const BTN_NAME: &str = "btn";
+pub const BUZZER_PIN_NAME: &str = "buzzer";
 
 #[unsafe(no_mangle)]
 fn rtrs_critical_section_acquire() {
@@ -26,14 +29,6 @@ fn rtrs_critical_section_release() {
     unsafe { cortex_m::interrupt::enable() };
 }
 
-fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
-    syst.set_clock_source(SystClkSource::Core);
-    syst.set_reload(core_freq / hz - 1);
-    syst.clear_current();
-    syst.enable_counter();
-    syst.enable_interrupt();
-}
-
 #[entry]
 unsafe fn main() -> ! {
     let peripherals = hal::pac::Peripherals::take().unwrap();
@@ -42,7 +37,9 @@ unsafe fn main() -> ! {
 
     let mut core_peripherals = cortex_m::Peripherals::take().unwrap();
 
-    setup_systick(&mut core_peripherals.SYST, rcc.clocks.sys_clk().0, 1_000);
+    time::setup_systick(&mut core_peripherals.SYST, rcc.clocks.sys_clk().0, 1_000);
+
+    time::setup_tim2();
 
     let gpioa = peripherals.GPIOA.split(&mut rcc);
 
@@ -57,15 +54,31 @@ unsafe fn main() -> ! {
     ).unwrap();
 
     let green_led_pin = gpioa.pa5.into_push_pull_output();
-    let btn_pin = gpioa.pa14.into_pull_up_input();
+    let btn_pin = gpioa.pa14.into_pull_down_input();
 
-    objects::init_objects(log_serial, green_led_pin, btn_pin);
+    let buzzer_pin = gpioa.pa15.into_push_pull_output();
 
-    app::board::BoardInterface::register_callback(app::board::CallbackType::TriggerCrash, || {
+    objects::init_objects(log_serial, green_led_pin, btn_pin, buzzer_pin);
+
+    {
+        let mut r = time::SYSCLK.lock_mut();
+        *r = rcc.clocks.sys_clk().0;
+    }
+
+    app::board::BoardInterface::register_callback(app::board::CallbackType::TriggerCrash(|| {
         unsafe {
             core::arch::asm!("udf #0");
         }
-    });
+    }));
+
+    app::board::BoardInterface::register_callback(app::board::CallbackType::MicrosecondDelay(|us| {
+        let r = time::SYSCLK.lock();
+        time::delay_us(us, *r, 3);
+    }));
+
+    app::board::BoardInterface::register_callback(app::board::CallbackType::MicrosecondTickProvider(|provider| {
+        *provider = Box::new(time::MicrosecondTickProvider::new());
+    }));
 
     app::main();
 }

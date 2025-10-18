@@ -45,6 +45,6 @@ fn SysTick() {
         time.increment()
     });
 
-    app::board::BoardInterface::callback(app::board::CallbackType::Systick)
+    app::board::BoardInterface::callback(app::board::Callback::Systick)
 }
 
