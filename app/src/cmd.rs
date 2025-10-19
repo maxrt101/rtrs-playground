@@ -1,7 +1,8 @@
-use rtrs::log::meta::ModuleMetaManager;
-use rtrs::object::STORAGE;
 use rtrs::log::Severity;
+use rtrs::log::meta::ModuleMetaManager;
+use rtrs::log::console::CONSOLE_OBJECT_NAME;
 use rtrs::shell::script::Runtime;
+use rtrs::object::STORAGE;
 
 use rtrs::{
     println,
@@ -15,13 +16,13 @@ use rtrs::{
     logger,
     trace,
     info,
-    error
+    error,
+    ignore
 };
 
 use core::alloc::Layout;
 use core::fmt::Write;
 
-use void::Void;
 use crate::board::{BoardInterface, Callback};
 
 logger!("SHELL");
@@ -31,13 +32,25 @@ fn cmd_panic(_rt: &mut Runtime, args: &[&str]) -> i8 {
 }
 
 fn cmd_crash(_rt: &mut Runtime, _args: &[&str]) -> i8 {
-    crate::board::BoardInterface::callback(crate::board::Callback::TriggerCrash);
+    BoardInterface::callback(Callback::TriggerCrash);
     0
 }
 
 fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
     fn help() {
-        println!("test [help|all|task|task-irq|task-nest|task-obj|logger|hexdump|box|heap]")
+        println!("test help|all|<TEST>...");
+        println!("Available tests:");
+        println!("  task");
+        println!("  task-irq");
+        println!("  task-nest");
+        println!("  task-obj");
+        println!("  task-sched");
+        println!("  task-sched-this");
+        println!("  task-sched-cancel");
+        println!("  logger");
+        println!("  hexdump");
+        println!("  heap");
+        println!("  btn");
     }
 
     enum Test {
@@ -273,8 +286,8 @@ fn cmd_time(_rt: &mut Runtime, _args: &[&str]) -> i8 {
 
 fn cmd_led(_rt: &mut Runtime, args: &[&str]) -> i8 {
     match args.get(0).map(|v| *v) {
-        Some("on")  => object_with_mut!("led_green", rtrs::gpio::Output<Void>, led, { let _ = led.set_high(); }),
-        Some("off") => object_with_mut!("led_green", rtrs::gpio::Output<Void>, led, { let _ = led.set_low();  }),
+        Some("on")  => object_with_mut!("led_green", rtrs::gpio::Output, led, { ignore!(led.set_high()); }),
+        Some("off") => object_with_mut!("led_green", rtrs::gpio::Output, led, { ignore!(led.set_low());  }),
         _           => error!("Unknown subcommand. Usage: led on|off")
     }
 
@@ -293,12 +306,14 @@ fn cmd_buzz(_rt: &mut Runtime, args: &[&str]) -> i8 {
 
     let mut state = false;
 
-    while matches!(object_with!(rtrs::log::console::CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()), None) {
-        if state {
-            object_with_mut!("buzzer", rtrs::gpio::Output<Void>, pin, { let _ = pin.set_high(); });
-        } else {
-            object_with_mut!("buzzer", rtrs::gpio::Output<Void>, pin, { let _ = pin.set_low(); });
-        }
+    while matches!(object_with_mut!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()), None) {
+        object_with_mut!("buzzer", rtrs::gpio::Output, pin,
+             if state {
+                ignore!(pin.set_high());
+            } else {
+                ignore!(pin.set_low());
+            }
+        );
 
         state = !state;
 

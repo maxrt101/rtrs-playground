@@ -37,7 +37,6 @@ use core::sync::atomic::{AtomicUsize, Ordering};
 
 use alloc::boxed::Box;
 
-use void::Void;
 use crate::board::{BoardInterface, Callback};
 
 logger!("TEST");
@@ -107,7 +106,7 @@ async fn task_irq2(_ctx: &ExecutionContext) {
 
 async fn task_monitor(ctx: &ExecutionContext) {
     loop {
-        if let Some(_) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
+        if let Some(_) = object_with_mut!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
             ctx.set_should_run(false);
         }
 
@@ -434,7 +433,7 @@ pub(crate) fn test_task_sched_cancel() {
     sched.run_to_completion();
 }
 
-pub(crate) fn test_task_sched_idle() {}
+// pub(crate) fn test_task_sched_idle() {}
 
 static BEEP: Pattern = gpio_pattern!(
     Action::Command(Command::On(20)),
@@ -447,18 +446,18 @@ static BEEP: Pattern = gpio_pattern!(
 );
 
 pub(crate) fn test_button() {
-    let mut last_state = object_with!("btn", Input<Void>, btn, btn.is_high().unwrap_or(true));
+    let mut last_state = object_with!("btn", Input, btn, btn.is_high().unwrap_or(true));
 
     let mut tick: Box<dyn rtrs::time::TickProvider<Tick = u32>> = Box::new(rtrs::time::GlobalTickProvider {});
     BoardInterface::callback(Callback::MicrosecondTickProvider(&mut tick));
     let mut ctx = PatternExecutionContext::new(&BEEP, tick);
 
     loop {
-        if let Some(_) = object_with!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
+        if let Some(_) = object_with_mut!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
             break;
         }
 
-        let state = object_with!("btn", Input<Void>, btn, btn.is_high().unwrap_or(true));
+        let state = object_with!("btn", Input, btn, btn.is_high().unwrap_or(true));
 
         if state != last_state {
             trace!("state {} -> {}", last_state as u8, state as u8);
@@ -466,7 +465,7 @@ pub(crate) fn test_button() {
         }
 
         if !state {
-            object_with_mut!("buzzer", Output<Void>, pin, ctx.cycle(&mut pin));
+            object_with_mut!("buzzer", Output, pin, ctx.cycle(&mut pin));
         }
 
     }
