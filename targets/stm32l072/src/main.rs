@@ -52,15 +52,11 @@ unsafe fn main() -> ! {
             &mut rcc
         ).unwrap()
     );
+    // FIXME: Can't use green led on nucleo, because SPI1_CLK is wired there also
     // objects::init_led(gpioa.pa5.into_push_pull_output());
     objects::init_btn(gpioa.pa14.into_pull_down_input());
     objects::init_buzz(gpioa.pa15.into_push_pull_output());
     objects::init_time();
-
-    // cs.set_low();
-    // let mut buf = [0x42, 0];
-    // let received = spi.transfer(&mut buf).unwrap();
-    // cs.set_high();
 
     let mut bus = spi::Spi1Bus::new(
         peripherals.SPI1.spi(
@@ -90,20 +86,24 @@ unsafe fn main() -> ! {
     use core::fmt::Write;
     println!("{:?}", rx);
 
-    app::board::BoardInterface::register_callback(app::board::CallbackType::TriggerCrash(|| {
-        unsafe {
-            core::arch::asm!("udf #0");
-        }
-    }));
+    app::board::BoardInterface::register_callback(
+        app::board::CallbackType::TriggerCrash(|| {
+            unsafe { core::arch::asm!("udf #0"); }
+        })
+    );
 
-    app::board::BoardInterface::register_callback(app::board::CallbackType::MicrosecondDelay(|us| {
-        let r = time::SYSCLK.lock();
-        time::delay_us(us, *r, 3);
-    }));
+    app::board::BoardInterface::register_callback(
+        app::board::CallbackType::MicrosecondDelay(|us| {
+            let r = time::SYSCLK.lock();
+            time::delay_us(us, *r, 3);
+        })
+    );
 
-    app::board::BoardInterface::register_callback(app::board::CallbackType::MicrosecondTickProvider(|provider| {
-        *provider = Box::new(time::MicrosecondTickProvider::new());
-    }));
+    app::board::BoardInterface::register_callback(
+        app::board::CallbackType::MicrosecondTickProvider(|provider| {
+            *provider = Box::new(time::MicrosecondTickProvider::new());
+        })
+    );
 
     app::main();
 }
