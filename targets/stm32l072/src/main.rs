@@ -5,6 +5,8 @@ mod exc;
 mod util;
 mod time;
 mod objects;
+mod tty;
+mod spi;
 
 use cortex_m_rt::entry;
 
@@ -14,9 +16,10 @@ use hal::prelude::*;
 extern crate alloc;
 use alloc::boxed::Box;
 
-pub const US_TIMER_NAME: &str = "us_time";
+use rtrs::{ignore, println};
+
 pub const GREEN_LED_NAME: &str = "led_green";
-pub const BTN_NAME: &str = "btn";
+pub const BTN_PIN_NAME: &str = "btn";
 pub const BUZZER_PIN_NAME: &str = "buzzer";
 
 #[unsafe(no_mangle)]
@@ -33,37 +36,59 @@ fn rtrs_critical_section_release() {
 unsafe fn main() -> ! {
     let peripherals = hal::pac::Peripherals::take().unwrap();
     let mut rcc = peripherals.RCC.freeze(hal::rcc::Config::hsi16());
-    // let pwr = hal::pwr::PWR::new(peripherals.PWR, &mut rcc);
-
     let mut core_peripherals = cortex_m::Peripherals::take().unwrap();
 
     time::setup_systick(&mut core_peripherals.SYST, rcc.clocks.sys_clk().0, 1_000);
-
     time::setup_tim2();
 
     let gpioa = peripherals.GPIOA.split(&mut rcc);
+    let gpiob = peripherals.GPIOB.split(&mut rcc);
 
-    let usart_tx_pin = gpioa.pa9;
-    let usart_rx_pin = gpioa.pa10;
+    objects::init_serial(
+        peripherals.USART1.usart(
+            gpioa.pa9,  // tx
+            gpioa.pa10, // rx
+            hal::serial::Config::default().baudrate(115_200.Bd()),
+            &mut rcc
+        ).unwrap()
+    );
+    // objects::init_led(gpioa.pa5.into_push_pull_output());
+    objects::init_btn(gpioa.pa14.into_pull_down_input());
+    objects::init_buzz(gpioa.pa15.into_push_pull_output());
+    objects::init_time();
 
-    let log_serial = peripherals.USART1.usart(
-        usart_tx_pin,
-        usart_rx_pin,
-        hal::serial::Config::default().baudrate(115_200.Bd()),
-        &mut rcc
-    ).unwrap();
+    // cs.set_low();
+    // let mut buf = [0x42, 0];
+    // let received = spi.transfer(&mut buf).unwrap();
+    // cs.set_high();
 
-    let green_led_pin = gpioa.pa5.into_push_pull_output();
-    let btn_pin = gpioa.pa14.into_pull_down_input();
+    let mut bus = spi::Spi1Bus::new(
+        peripherals.SPI1.spi(
+            (
+                gpioa.pa5, // clk
+                gpioa.pa6, // miso
+                gpioa.pa7  // mosi
+            ),
+            hal::spi::Mode {
+                polarity: hal::spi::Polarity::IdleLow,
+                phase:    hal::spi::Phase::CaptureOnFirstTransition,
+            },
+            1000.Hz(),
+            &mut rcc
+        ),
+        gpiob.pb6.into_push_pull_output() // cs
+    );
 
-    let buzzer_pin = gpioa.pa15.into_push_pull_output();
+    let tx = [0x42, 0];
+    let mut rx = [0, 0];
 
-    objects::init_objects(log_serial, green_led_pin, btn_pin, buzzer_pin);
+    use rtrs::bus::Bus;
+    ignore!(bus.lock());
+    ignore!(bus.transfer(&tx, &mut rx));
+    ignore!(bus.unlock());
 
-    {
-        let mut r = time::SYSCLK.lock_mut();
-        *r = rcc.clocks.sys_clk().0;
-    }
+    use core::fmt::Write;
+    println!("{:?}", rx);
 
     app::board::BoardInterface::register_callback(app::board::CallbackType::TriggerCrash(|| {
         unsafe {

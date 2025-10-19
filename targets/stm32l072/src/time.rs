@@ -10,6 +10,9 @@ pub(crate) fn setup_systick(syst: &mut SYST, core_freq: u32, hz: u32) {
     syst.clear_current();
     syst.enable_counter();
     syst.enable_interrupt();
+
+    let mut r = SYSCLK.lock_mut();
+    *r = core_freq;
 }
 
 pub(crate) fn setup_tim2() {
@@ -18,10 +21,9 @@ pub(crate) fn setup_tim2() {
 
     let tim2 = unsafe { &*crate::hal::pac::TIM2::ptr() };
 
-    // Set prescaler and auto-reload for 1 MHz tick (assuming 16 MHz clock)
-    tim2.psc.write(|w| w.psc().bits(16 - 1)); // divide by 16
-    tim2.arr.write(|w| w.arr().bits(u16::MAX)); // full 32-bit counter
-    tim2.cr1.modify(|_, w| w.cen().set_bit()); // start timer
+    tim2.psc.write(|w| w.psc().bits(16 - 1));
+    tim2.arr.write(|w| w.arr().bits(u16::MAX));
+    tim2.cr1.modify(|_, w| w.cen().set_bit());
 }
 
 #[inline(never)]
