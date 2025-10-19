@@ -6,5 +6,4 @@ edition = "2024"
 [dependencies]
 rtrs = { path = "../rtrs", features = ["track_locks", "track_borrows"]}
 rtrs-drivers = { path = "../rtrs-drivers" }
-void = { version = "1.0.2", default-features = false }
 heapless = "0.8.0"

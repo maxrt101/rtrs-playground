@@ -9,7 +9,6 @@ dependencies = [
  "heapless",
  "rtrs",
  "rtrs-drivers",
- "void",
 ]
 
 [[package]]
@@ -307,9 +306,9 @@ dependencies = [
  "cortex-m",
  "cortex-m-rt",
  "embedded-hal",
+ "nb 0.1.3",
  "rtrs",
  "stm32l0xx-hal",
- "void",
 ]
 
 [[package]]
