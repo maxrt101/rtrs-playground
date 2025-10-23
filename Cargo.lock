@@ -299,7 +299,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "stm32l072"
+name = "stm32l0xx"
 version = "0.1.0"
 dependencies = [
  "app",
@@ -308,6 +308,7 @@ dependencies = [
  "embedded-hal",
  "nb 0.1.3",
  "rtrs",
+ "rtrs-drivers",
  "stm32l0xx-hal",
 ]
 

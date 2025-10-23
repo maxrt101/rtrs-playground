@@ -3,6 +3,6 @@ members = [
     "app",
     "rtrs",
     "rtrs-drivers",
-    "targets/stm32l072",
+    "targets/stm32l0xx",
 ]
-resolver = "3"
+resolver = "2"
