@@ -1,3 +1,7 @@
 target
 
 .idea
+
+targets/stm32l0xx/memory.x
+targets/stm32l0xx/*.jdebug
+targets/stm32l0xx/*.jdebug.user
