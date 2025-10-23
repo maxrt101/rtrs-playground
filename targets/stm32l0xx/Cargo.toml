@@ -1,7 +1,7 @@
 cargo-features = ["per-package-target"]
 
 [package]
-name = "stm32l072"
+name = "stm32l0xx"
 version = "0.1.0"
 edition = "2024"
 forced-target = "thumbv6m-none-eabi"
@@ -11,7 +11,14 @@ embedded-hal = "0.2.7"
 nb = "0.1.3"
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
-stm32l0xx-hal = { version = "0.10.0", default-features = false, features = ["rt", "mcu-STM32L072CBTx"]}
+stm32l0xx-hal = { version = "0.10.0", default-features = false, features = ["rt"]}
 rtrs = { path = "../../rtrs", features = ["critical_section_custom"] }
+rtrs-drivers = { path = "../../rtrs-drivers" }
 app = { path = "../../app" }
+
+[features]
+#default = ["mcu-stm32l073"]
+default = ["mcu-stm32l051"]
+mcu-stm32l051 = ["stm32l0xx-hal/mcu-STM32L051C8Tx"]
+mcu-stm32l073 = ["stm32l0xx-hal/mcu-STM32L073RZTx"]
 

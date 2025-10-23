@@ -6,6 +6,7 @@ use crate::hal::serial::Serial;
 use rtrs::{object_insert, output_pin_wrapper, input_pin_wrapper};
 use rtrs::time::{TimeProvider, TIME_OBJECT_NAME};
 use rtrs::log::console::CONSOLE_OBJECT_NAME;
+use rtrs_drivers::radio::sx1278::SX1278RadioDriver;
 
 output_pin_wrapper!(LedPin,    PA5<Output<PushPull>>);
 output_pin_wrapper!(BuzzerPin, PA15<Output<PushPull>>);
@@ -29,4 +30,9 @@ pub(crate) fn init_buzz(pin: PA15<Output<PushPull>>) {
 
 pub(crate) fn init_time() {
     object_insert!(TIME_OBJECT_NAME, TimeProvider::new());
+}
+
+pub(crate) fn init_radio(bus: super::spi::Spi1Bus) {
+    let radio = SX1278RadioDriver::create_radio(bus);
+    object_insert!("radio", radio);
 }
