@@ -15,6 +15,7 @@ use hal::prelude::*;
 
 extern crate alloc;
 use alloc::boxed::Box;
+use rtrs::object_with_mut;
 
 pub const GREEN_LED_NAME: &str = "led_green";
 pub const BTN_PIN_NAME: &str = "btn";
@@ -34,9 +35,11 @@ fn rtrs_critical_section_release() {
 unsafe fn main() -> ! {
     cortex_m::interrupt::disable();
 
+    let mut core_peripherals = cortex_m::Peripherals::take().unwrap();
+
     let peripherals = hal::pac::Peripherals::take().unwrap();
     let mut rcc = peripherals.RCC.freeze(hal::rcc::Config::hsi16());
-    let mut core_peripherals = cortex_m::Peripherals::take().unwrap();
+    let mut adc = peripherals.ADC.constrain(&mut rcc);
 
     time::setup_systick(&mut core_peripherals.SYST, rcc.clocks.sys_clk().0, 1_000);
     time::setup_tim2();
@@ -79,6 +82,8 @@ unsafe fn main() -> ! {
             gpioa.pa4.into_push_pull_output(), // cs
         )
     );
+
+    objects::init_pulse_sensor(adc, gpioa.pa2.into_analog());
 
     app::board::BoardInterface::register_callback(
         app::board::CallbackType::TriggerCrash(|| {

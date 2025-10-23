@@ -30,11 +30,11 @@ pub(crate) fn setup_tim2() {
 fn delay_cycles(cycles: u32) {
     unsafe {
         core::arch::asm!(
-        "1:",
-        "   subs {0}, #1",
-        "   bne 1b",
-        inout(reg) cycles => _,
-        options(nomem, nostack, preserves_flags),
+            "1:",
+            "   subs {0}, #1",
+            "   bne 1b",
+            inout(reg) cycles => _,
+            options(nomem, nostack, preserves_flags),
         );
     }
 }

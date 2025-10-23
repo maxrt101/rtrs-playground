@@ -28,7 +28,7 @@ use core::fmt::Write;
 
 use crate::board::{BoardInterface, Callback};
 
-logger!("SHELL");
+logger!("shell");
 
 fn cmd_panic(_rt: &mut Runtime, args: &[&str]) -> i8 {
     panic!("{}", args.get(0).map_or("Manual panic", |v| v));
@@ -69,6 +69,7 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
         Box,
         Heap,
         Button,
+        Pulse,
     }
 
     let mut tests: u32 = 0;
@@ -90,6 +91,7 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
             "box"               => bit_set!(tests, Test::Box),
             "heap"              => bit_set!(tests, Test::Heap),
             "btn"               => bit_set!(tests, Test::Button),
+            "pulse"             => bit_set!(tests, Test::Pulse),
             "help" => {
                 help();
                 return 0;
@@ -160,6 +162,11 @@ fn cmd_test(_rt: &mut Runtime, args: &[&str]) -> i8 {
     bit_if!(tests, Test::Button, {
         trace!("Running Test::Button");
         crate::test_button()
+    });
+
+    bit_if!(tests, Test::Pulse, {
+        trace!("Running Test::Pulse");
+        crate::test_pulse_sensor()
     });
 
     0

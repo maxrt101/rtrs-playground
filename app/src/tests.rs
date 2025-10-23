@@ -39,7 +39,7 @@ use alloc::boxed::Box;
 
 use crate::board::{BoardInterface, Callback};
 
-logger!("TEST");
+logger!("test");
 
 async fn task1() {
     for i in 0..2 {
@@ -468,6 +468,20 @@ pub(crate) fn test_button() {
             object_with_mut!("buzzer", Output, pin, ctx.cycle(&mut pin));
         }
 
+    }
+}
+
+pub(crate) fn test_pulse_sensor() {
+    loop {
+        if let Some(_) = object_with_mut!(CONSOLE_OBJECT_NAME, rtrs::tty::Tty, tty, tty.read()) {
+            break;
+        }
+        
+        let reading = object_with_mut!("pulse_sensor", crate::peripherals::pulse_sensor::PulseSensor, sensor, sensor.read());
+        
+        println!("{}", reading);
+        
+        rtrs::time::delay_ms(200);
     }
 }
 

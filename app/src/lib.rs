@@ -5,6 +5,7 @@ mod cmd;
 mod logs;
 mod tests;
 pub mod board;
+pub mod peripherals;
 
 extern crate alloc;
 
