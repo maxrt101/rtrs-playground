@@ -5,6 +5,7 @@ use rtrs::shell::script::Runtime;
 use rtrs::object::STORAGE;
 
 use rtrs::{
+    print,
     println,
     command,
     shell,
@@ -19,6 +20,8 @@ use rtrs::{
     error,
     ignore
 };
+
+use rtrs_drivers::radio::{Radio, RadioError, RadioIoctl};
 
 use core::alloc::Layout;
 use core::fmt::Write;
@@ -323,6 +326,80 @@ fn cmd_buzz(_rt: &mut Runtime, args: &[&str]) -> i8 {
     0
 }
 
+fn cmd_radio(_rt: &mut Runtime, args: &[&str]) -> i8 {
+    fn help() {
+        error!("Usage: radio init|send|recv ...");
+        error!(" radio send BYTES...");
+        error!(" radio recv TIMEOUT_MS");
+    }
+
+    match args.get(0).map(|v| *v) {
+        Some("init") => {
+            object_with_mut!("radio", Radio, radio, {
+                let _ = radio.init();
+
+                let _ = radio.set_frequency(433000);
+                let _ = radio.set_power(20);
+                let _ = radio.ioctl(RadioIoctl::SetPreambleSize(10));
+                let _ = radio.set_bandwidth(125000);
+            });
+        }
+        Some("send") => {
+            let mut buf = [0; 64];
+            let mut size = 0;
+
+            for i in 1..args.len() {
+                buf[i - 1] = args.get(i).map_or("0", |v| *v).parse().unwrap_or(0);
+                size += 1;
+            }
+
+            loop {
+                object_with_mut!("radio", Radio, radio, {
+                    match radio.send(&buf[0..size]) {
+                        Ok(()) => {
+                            break;
+                        }
+                        Err(RadioError::InProgress) => {}
+                        Err(err) => {
+                            error!("Error: {:?}", err);
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+        Some("recv") => {
+            let ms = args.get(1).map_or("1000", |v| v).parse().unwrap_or(1000);
+
+            loop {
+                object_with_mut!("radio", Radio, radio, {
+                    match radio.recv(rtrs::time::Timeout::new(ms)) {
+                        Ok((bytes, size)) => {
+                            print!("[{}] ", size);
+                            for i in 0..size {
+                                print!("{:x} ", bytes[i]);
+                            }
+                            println!();
+                            break;
+                        }
+                        Err(RadioError::InProgress) => {}
+                        Err(err) => {
+                            error!("Error: {:?}", err);
+                            break;
+                        }
+                    }
+                });
+            }
+        }
+        _ => {
+            help();
+            return 1;
+        }
+    }
+
+    0
+}
+
 pub fn create_shell() -> rtrs::shell::Shell {
     shell!(
         // Builtin commands
@@ -340,5 +417,6 @@ pub fn create_shell() -> rtrs::shell::Shell {
         command!("time",    "Get tick",         cmd_time),
         command!("led",     "Control led",      cmd_led),
         command!("buzz",    "Control buzzer",   cmd_buzz),
+        command!("radio",   "Radio control",    cmd_radio),
     )
 }
