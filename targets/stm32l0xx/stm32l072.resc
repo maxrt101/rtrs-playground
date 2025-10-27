@@ -7,7 +7,7 @@ mach create "stm32l072"
 machine LoadPlatformDescription @platforms/cpus/stm32l072.repl
 
 # Load compiled ELF
-sysbus LoadELF @target/thumbv6m-none-eabi/release/stm32l072
+sysbus LoadELF @target/thumbv6m-none-eabi/release/stm32l0xx
 
 # Will show USART1 window (though using run.sh/console.sh makes this redundant)
 showAnalyzer usart1

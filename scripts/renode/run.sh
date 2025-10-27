@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
-RESC_STM32L072="targets/stm32l072/stm32l072.resc"
-RESC_STM32H743="targets/stm32h743/stm32h743.resc"
+RESC_STM32L072="targets/stm32l0xx/stm32l072.resc"
 
 RESC=$RESC_STM32L072
 
